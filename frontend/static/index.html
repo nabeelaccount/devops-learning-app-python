@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>People</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 480px; margin: 2rem auto; padding: 0 1rem; }
+    form { display: grid; gap: .5rem; }
+    input, button { padding: .5rem; font-size: 1rem; }
+    #status.ok { color: green; }
+    #status.err { color: crimson; }
+    small { color: #666; }
+  </style>
+</head>
+<body>
+  <h1>People</h1>
+
+  <form id="form">
+    <input name="name" placeholder="Name" required>
+    <input name="email" type="email" placeholder="Email" required>
+    <input name="dob" type="date" required>
+    <button>Save</button>
+  </form>
+  <p id="status"></p>
+
+  <h2>Saved</h2>
+  <ul id="list"></ul>
+
+  <small>Served by <span id="host">...</span></small>
+
+  <script>
+    const status = document.getElementById("status");
+
+    async function loadPeople() {
+      const res = await fetch("/api/people");
+      const people = await res.json();
+      const list = document.getElementById("list");
+      list.replaceChildren();
+      for (const p of people) {
+        const li = document.createElement("li");
+        li.textContent = `${p.name} (${p.email}), born ${p.dob}`;
+        list.appendChild(li);
+      }
+    }
+
+    async function loadHost() {
+      const res = await fetch("/api/whoami");
+      const data = await res.json();
+      document.getElementById("host").textContent = data.served_by;
+    }
+
+    document.getElementById("form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const body = Object.fromEntries(new FormData(e.target));
+      // The date input gives YYYY-MM-DD; the API wants DD-MM-YYYY.
+      body.dob = body.dob.split("-").reverse().join("-");
+
+      const res = await fetch("/api/people", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      const data = await res.json();
+
+      if (res.ok) {
+        status.className = "ok";
+        status.textContent = `Saved ${data.name}`;
+        e.target.reset();
+        loadPeople();
+      } else {
+        status.className = "err";
+        status.textContent = data.error;
+      }
+      loadHost();
+    });
+
+    loadPeople();
+    loadHost();
+  </script>
+</body>
+</html>
