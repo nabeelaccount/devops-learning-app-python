@@ -43,6 +43,9 @@ jobs:
           role-session-name: ecs-oidc
           aws-region: "eu-west-1"
 
+        # The with: inputs aren’t run by a shell, so $VAR is passed to the action as literal text, 
+        # whereas /$/{{ env.VAR }} is evaluated by GitHub before the step runs and substitutes the actual ARN.
+
       - name: Login to Amazon ECR
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@03f1aad4c6c7ffd436567f42f9384779290529bd # v2.1.7
