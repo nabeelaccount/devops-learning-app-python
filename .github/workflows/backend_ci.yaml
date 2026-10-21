@@ -39,7 +39,7 @@ jobs:
       - name: configure aws credentials
         uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
         with:
-          role-to-assume: $ODIC_PROVIDER_AWS_ROLE
+          role-to-assume: ${{ env.ODIC_PROVIDER_AWS_ROLE }}
           role-session-name: ecs-oidc
           aws-region: "eu-west-1"
 
