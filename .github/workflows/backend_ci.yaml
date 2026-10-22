@@ -19,7 +19,7 @@ permissions:
 env:
   AWS_REGION: eu-west-1                         # set this to your preferred AWS region, e.g. us-west-1
   ECR_REPOSITORY_NAMESPACE: multi-service-ecs             # ECR Registry/Repository created in Terraform Bootstrap
-  ECR_REPOSTIORY_APP: BACKEND
+  ECR_REPOSTIORY_APP: backend
   ODIC_PROVIDER_AWS_ROLE: arn:aws:iam::171109859843:role/oidc-role-multi-service-ecs
   REPO_NAME_SPACE: multi-service-ecs
 
@@ -32,7 +32,7 @@ jobs:
     defaults:
       run:
         shell: bash
-        working-directory: ${{ env.ECR_REPOSTIORY_APP }}
+        working-directory: backend
 
     steps:
       - name: Checkout
