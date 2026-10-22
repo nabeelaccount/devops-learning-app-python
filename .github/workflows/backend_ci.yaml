@@ -32,7 +32,7 @@ jobs:
     defaults:
       run:
         shell: bash
-        working-directory: ./${{ env.ECR_REPOSTIORY_APP }}
+        working-directory: ${{ env.ECR_REPOSTIORY_APP }}
 
     steps:
       - name: Checkout
