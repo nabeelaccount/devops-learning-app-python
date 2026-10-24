@@ -1,0 +1,77 @@
+name: frontend - Build and Push to Amazon ECR
+
+on:
+  push:
+    paths:
+      - 'frontend/**'
+    branches:
+      - main
+
+  # Enable pipeline can be manual triggering of the pipeline
+  workflow_dispatch:
+
+
+# permission can be added at job level or workflow level
+permissions:
+  id-token: write     # This is required for requesting the JWT
+  contents: read      # This is required for actions/checkout
+
+env:
+  AWS_REGION: eu-west-1                         # set this to your preferred AWS region, e.g. us-west-1
+  ECR_REPOSITORY_NAMESPACE: multi-service-ecs             # ECR Registry/Repository created in Terraform Bootstrap
+  ECR_REPOSTIORY_APP: frontend
+  ODIC_PROVIDER_AWS_ROLE: arn:aws:iam::171109859843:role/oidc-role-multi-service-ecs
+  REPO_NAME_SPACE: multi-service-ecs
+
+
+jobs:
+  build:
+    if: github.ref == 'refs/heads/main'         # Ensure job runs only when main branch is updated as required by the OIDC role.
+    name: Build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
+        working-directory: frontend
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Debug OIDC claims
+        run: |
+          TOKEN=$(curl -sS -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+            "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=sts.amazonaws.com" | jq -r '.value')
+          PAYLOAD=$(echo "$TOKEN" | cut -d '.' -f2 | tr '_-' '/+')
+          # restore base64 padding
+          while [ $(( ${#PAYLOAD} % 4 )) -ne 0 ]; do PAYLOAD="${PAYLOAD}="; done
+          echo "$PAYLOAD" | base64 -d | jq '{sub, aud, iss, repository, ref}'
+
+      - name: configure aws credentials
+        uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
+        with:
+          role-to-assume: ${{ env.ODIC_PROVIDER_AWS_ROLE }}
+          role-session-name: ecs-oidc
+          aws-region: "eu-west-1"
+
+        # The with: inputs aren’t run by a shell, so $VAR is passed to the action as literal text, 
+        # whereas /$/{{ env.VAR }} is evaluated by GitHub before the step runs and substitutes the actual ARN.
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@03f1aad4c6c7ffd436567f42f9384779290529bd # v2.1.7
+
+      - name: Build, tag, and push image to Amazon ECR
+        id: build-image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          # Build a docker container and
+          # push it to ECR so that it can
+          # be deployed to ECS.
+          docker build \
+            -t $ECR_REGISTRY/${{ env.ECR_REPOSITORY_NAMESPACE }}/${{ env.ECR_REPOSTIORY_APP }}:$IMAGE_TAG \
+            -t $ECR_REGISTRY/${{ env.ECR_REPOSITORY_NAMESPACE }}/${{ env.ECR_REPOSTIORY_APP }}:latest .
+          docker push --all-tags $ECR_REGISTRY/${{ env.ECR_REPOSITORY_NAMESPACE }}/${{ env.ECR_REPOSTIORY_APP }}
+          echo "image=$ECR_REGISTRY/${{ env.ECR_REPOSITORY_NAMESPACE }}/${{ env.ECR_REPOSTIORY_APP }}:$IMAGE_TAG" >> $GITHUB_OUTPUT
