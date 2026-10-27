@@ -5,9 +5,8 @@ services:
       # pass SECURE_PASSWORD from .env or fail if it is missing
       - SECURE_PASSWORD=${SECURE_PASSWORD:?SECURE_PASSWORD is not set}
     volumes:
-      # named volume mounted at the path DATA_DIR resolves to
-      # /app/data because the working dir is /app and data held in /data --> /app/data
-      - backend-data:/app/data
+      # /data as specified by DATA_DIR in the application.
+      - backend-data:/data
     healthcheck:
       # call /health from inside the container
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8080/health')"]

@@ -14,7 +14,7 @@ logging.basicConfig(level=logging.INFO, stream=sys.stdout, format="%(asctime)s %
 
 app = Flask(__name__)
 
-DATA_DIR = os.getenv("DATA_DIR", "data")
+DATA_DIR = os.getenv("DATA_DIR", "/data")
 DATA_FILE = os.path.join(DATA_DIR, "people.json")
 
 # Fail at startup if the secret was not injected: a broken secret
